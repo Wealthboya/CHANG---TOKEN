@@ -117,7 +117,15 @@ The Meme Coin on SUI Blockchain
     </div>
 
   </div>
+<body>
 
+<h1>CHANG DASHBOARD</h1>
+
+<p>Price Chart</p>
+
+<canvas id="changChart"></canvas>
+
+</body>
 </div>
 <div style="margin-top:40px;">
   <h2>📊 Tokenomics</h2>
@@ -149,7 +157,101 @@ The Meme Coin on SUI Blockchain
 This Website Visits
 </a>
 <!-- hitwebcounter Code END -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script>
+const POOL_ID = "0xd8711a9737b905923e535e0c2961cd08def3add4b4633ab83f94059b6f502445";
+
+let chart;
+
+// สร้างกราฟ
+function initChart() {
+    const ctx = document.getElementById("changChart");
+
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "CHANG / SUI Price",
+                data: [],
+                borderColor: "#00ffcc",
+                backgroundColor: "rgba(0,255,204,0.1)",
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { ticks: { color: "#fff" } },
+                y: { ticks: { color: "#fff" } }
+            },
+            plugins: {
+                legend: {
+                    labels: { color: "#fff" }
+                }
+            }
+        }
+    });
+}
+
+// ดึงข้อมูลจาก Sui RPC
+async function getPoolPrice() {
+    const res = await fetch("https://fullnode.mainnet.sui.io", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method: "sui_getObject",
+            params: [
+                POOL_ID,
+                { showContent: true }
+            ]
+        })
+    });
+
+    const json = await res.json();
+
+    const fields = json?.result?.data?.content?.fields;
+
+    if (!fields) return null;
+
+    // ⚠️ DLMM: อาจต้องปรับตาม pool จริง
+    let price = Number(fields.price || fields.sqrt_price || 0);
+
+    // normalize SUI decimals (9)
+    price = price / Math.pow(10, 9);
+
+    return price;
+}
+
+// เริ่มระบบ
+async function start() {
+    initChart();
+
+    setInterval(async () => {
+        const price = await getPoolPrice();
+
+        if (!price) return;
+
+        const time = new Date().toLocaleTimeString();
+
+        chart.data.labels.push(time);
+        chart.data.datasets[0].data.push(price);
+
+        // เก็บแค่ 20 จุดล่าสุด
+        if (chart.data.labels.length > 20) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+
+        chart.update();
+    }, 5000);
+}
+
+start();
+</script>
 </body>
 </body>
 </html>
